@@ -23,3 +23,13 @@ Rationale:
 
 Rejected:
 - Storing artifact without hash (insufficient transparency)
+
+update 0.2 pre launch
+"sources": [
+  {
+    "type": "artifact",
+    "reference": "truth_is_no_defense.png",
+    "confidence": 1.0,
+    "hash_sha256": "2149adc3933e34978696af94287743056908bd0acb6d47e04f645c798de69a04"
+  }
+]
