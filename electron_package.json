@@ -1,0 +1,20 @@
+{
+  "name": "temporal-receipts",
+  "version": "1.0.0",
+  "description": "Temporal Receipts — append-only time ledger",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "org.temporalreceipts.app",
+    "productName": "TemporalReceipts",
+    "directories": { "output": "dist" },
+    "win": { "target": "nsis" }
+  },
+  "devDependencies": {
+    "electron": "^30.0.0",
+    "electron-builder": "^24.13.3"
+  }
+}
