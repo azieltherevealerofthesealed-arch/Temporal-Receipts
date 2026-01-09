@@ -1,0 +1,17 @@
+{
+  "receipt_id": "TR-1926-08-03-000002-FORK-A",
+  "timestamp_utc": "1926-08-03T12:00:00Z",
+  "event_type": "fork_notice",
+  "event_summary": "Alternative lineage fork created from the genesis receipt to record an independent interpretation path",
+  "location": null,
+  "sources": [
+    {
+      "type": "artifact",
+      "reference": "Fork initiated from genesis receipt TR-1926-08-03-000001",
+      "confidence": 1.0
+    }
+  ],
+  "confidence_score": 1.0,
+  "hash_prev": "2149adc3933e34978696af94287743056908bd0acb6d47e04f645c798de69a04",
+  "notes": "This receipt marks the creation of a forked lineage. Forks indicate divergence in recording paths, not correctness or authority. The original lineage remains intact."
+}

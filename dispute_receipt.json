@@ -1,0 +1,23 @@
+{
+  "receipt_id": "TR-2026-01-08-000003",
+  "timestamp_utc": "2026-01-08T02:00:00Z",
+  "event_type": "dispute",
+  "event_summary": "Dispute filed: source 'independent media confirmation' may be unverified",
+  "location": null,
+  "sources": [
+    {
+      "type": "secondary",
+      "reference": "fact-check note / reviewer log",
+      "confidence": 0.7
+    }
+  ],
+  "confidence_score": 0.6,
+  "hash_prev": "d68dcd91e8f24cc73d95282579466351b61b181eef1b242fbbc83d8f825776c3",
+  "links": {
+    "disputes": [
+      "TR-2026-01-08-000002"
+    ]
+  },
+  "notes": "Dispute is additive; original receipt remains unchanged.",
+  "hash_current": "24a5726f57ceb48f10f035f3334f01c2d6b59840c239215954bb890fea52cbd2"
+}

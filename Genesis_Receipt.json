@@ -1,0 +1,19 @@
+{
+  "receipt_id": "TR-1926-08-03-000001",
+  "timestamp_utc": "1926-08-03T00:00:00Z",
+  "event_type": "historical_artifact",
+  "event_summary": "Newspaper clipping titled 'The Truth No Defense' documenting a court position that truth is not a defense in contempt proceedings",
+  "location": "United States",
+  "sources": [
+    {
+      "type": "artifact",
+      "reference": "truth_is_no_defense.png",
+      "confidence": 1.0,
+      "hash_sha256": "2149adc3933e34978696af94287743056908bd0acb6d47e04f645c798de69a04"
+    }
+  ],
+  "confidence_score": 1.0,
+  "hash_prev": null,
+  "notes": "Genesis receipt anchored to a historical artifact. No endorsement, interpretation, or claim beyond existence and date.",
+  "hash_current": "3a8ebc163ab92c894ab1e5678aa9b63c47f4853a5687adf4838ec6fe9195ebad"
+}

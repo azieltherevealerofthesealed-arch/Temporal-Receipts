@@ -1,0 +1,18 @@
+{
+  "receipt_id": "TR-2026-01-08-000001",
+  "timestamp_utc": "2026-01-08T00:00:00Z",
+  "event_type": "genesis",
+  "event_summary": "Genesis receipt for this example chain",
+  "location": null,
+  "sources": [
+    {
+      "type": "artifact",
+      "reference": "repo/examples genesis",
+      "confidence": 1.0
+    }
+  ],
+  "confidence_score": 1.0,
+  "hash_prev": null,
+  "notes": "No interpretation applied",
+  "hash_current": "7c1a3878e73465b8f504e472d419612db0bc9d6741292fdae9415790154cead7"
+}

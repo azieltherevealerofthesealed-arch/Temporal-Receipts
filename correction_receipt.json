@@ -1,0 +1,23 @@
+{
+  "receipt_id": "TR-2026-01-08-000004",
+  "timestamp_utc": "2026-01-08T03:00:00Z",
+  "event_type": "correction",
+  "event_summary": "Correction: updated location format to include country code",
+  "location": "Washington, DC, US",
+  "sources": [
+    {
+      "type": "artifact",
+      "reference": "editorial correction log",
+      "confidence": 0.9
+    }
+  ],
+  "confidence_score": 0.9,
+  "hash_prev": "24a5726f57ceb48f10f035f3334f01c2d6b59840c239215954bb890fea52cbd2",
+  "links": {
+    "corrections": [
+      "TR-2026-01-08-000002"
+    ]
+  },
+  "notes": "Correction is additive; does not overwrite prior receipts.",
+  "hash_current": "cd1c06221faaad2f5f908a22864e8d7beefe7e76fe827bb5a711401cadd7eb79"
+}

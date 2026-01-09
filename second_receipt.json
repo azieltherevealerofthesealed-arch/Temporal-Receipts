@@ -1,0 +1,23 @@
+{
+  "receipt_id": "TR-2026-01-08-000002",
+  "timestamp_utc": "2026-01-08T01:23:45Z",
+  "event_type": "public_statement",
+  "event_summary": "Example statement released regarding a policy change",
+  "location": "Washington, DC, US",
+  "sources": [
+    {
+      "type": "primary",
+      "reference": "official press release",
+      "confidence": 0.92
+    },
+    {
+      "type": "secondary",
+      "reference": "independent media confirmation",
+      "confidence": 0.78
+    }
+  ],
+  "confidence_score": 0.85,
+  "hash_prev": "7c1a3878e73465b8f504e472d419612db0bc9d6741292fdae9415790154cead7",
+  "notes": "No interpretation applied",
+  "hash_current": "d68dcd91e8f24cc73d95282579466351b61b181eef1b242fbbc83d8f825776c3"
+}
