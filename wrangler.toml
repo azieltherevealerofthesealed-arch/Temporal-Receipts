@@ -1,0 +1,7 @@
+name = "temporal-receipts-api"
+main = "worker.js"
+compatibility_date = "2026-01-08"
+
+kv_namespaces = [
+  { binding = "TR_KV", id = "REPLACE_WITH_YOUR_KV_NAMESPACE_ID" }
+]
