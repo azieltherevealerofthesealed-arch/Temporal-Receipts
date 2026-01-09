@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Temporal Receipts</title>
+  <style>
+    :root{
+      --bg:#000;
+      --panel:#050505;
+      --border:#2a2a2a;
+      --gold:#FFD700;
+      --muted:#c9b458;
+      --bad:#ff5c5c;
+    }
+    body{ margin:0; background:var(--bg); color:var(--gold);
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    header{ padding:16px 18px; border-bottom:1px solid var(--border); position:sticky; top:0; background:var(--bg); }
+    h1{ margin:0; font-size:18px; letter-spacing:.3px; }
+    .muted{ color:var(--muted); font-size:12px; }
+    main{ display:grid; grid-template-columns: 380px 1fr; min-height: calc(100vh - 58px); }
+    aside{ border-right:1px solid var(--border); padding:14px; overflow:auto; }
+    section{ padding:14px; overflow:auto; }
+    .card{ border:1px solid var(--border); background:var(--panel); border-radius:14px; padding:12px; margin-bottom:12px; }
+    .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between; }
+    button,input,textarea{ font:inherit; border-radius:12px; border:1px solid var(--gold);
+      background:var(--bg); color:var(--gold); padding:10px 10px; }
+    button{ cursor:pointer; }
+    button:hover{ background:var(--gold); color:var(--bg); }
+    textarea{ width:100%; min-height:90px; resize:vertical; border-color:#a8922a; }
+    input{ width:100%; border-color:#a8922a; }
+    .pill{ font-size:11px; padding:3px 9px; border-radius:999px; border:1px solid #a8922a; color:var(--muted); }
+    .pill.ok{ border-color: var(--gold); color: var(--gold); }
+    .pill.bad{ border-color: var(--bad); color: #ffd1d1; }
+    pre{ white-space:pre-wrap; word-break:break-word; margin:0; }
+    .click{ cursor:pointer; }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Temporal Receipts <span class="muted">— record time, not meaning</span></h1>
+</header>
+
+<main>
+  <aside>
+    <div class="card">
+      <div class="row">
+        <button id="loadLocal">Load examples (bundled)</button>
+        <span id="status" class="pill">not loaded</span>
+      </div>
+      <div class="muted" style="margin-top:8px">
+        Offline viewer/submit/verify. Add Cloudflare tomorrow if desired.
+      </div>
+    </div>
+    <div id="list"></div>
+  </aside>
+
+  <section>
+    <div class="card">
+      <div class="row">
+        <strong>Receipt Detail</strong>
+        <span id="detailConf" class="pill">—</span>
+      </div>
+      <div id="detail" class="muted" style="margin-top:10px">Select a receipt on the left.</div>
+    </div>
+
+    <div class="card">
+      <strong>Submit Receipt (local append-only demo)</strong>
+      <div class="muted" style="margin:8px 0 10px 0">
+        Adds a receipt in-memory only. No overwrite. No interpretation.
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+        <input id="eventType" placeholder="event_type (e.g., note, public_statement)"/>
+        <input id="location" placeholder="location (optional)"/>
+      </div>
+
+      <div style="margin-top:10px;">
+        <input id="summary" maxlength="240" placeholder="event_summary (max 240 chars)"/>
+      </div>
+
+      <div style="margin-top:10px;">
+        <textarea id="sources" placeholder='sources JSON array, e.g. [{"type":"primary","reference":"...","confidence":0.9}]'></textarea>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:10px; align-items:center; flex-wrap:wrap;">
+        <input id="confidence" type="number" min="0" max="1" step="0.01" placeholder="confidence_score 0..1" style="max-width:220px;"/>
+        <button id="add">Add receipt (local)</button>
+        <span class="muted">append-only • lineage visible • verifyable</span>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+  const state = { receipts: [], selected: null };
+
+  function escapeHtml(s){
+    return (s ?? "").replaceAll("&","&amp;").replaceAll("<","&lt;").replaceAll(">","&gt;");
+  }
+
+  function canonical(obj){
+    const keys = Object.keys(obj).sort();
+    const sorted = {};
+    for (const k of keys) sorted[k] = obj[k];
+    return JSON.stringify(sorted);
+  }
+
+  async function sha256Hex(str){
+    const enc = new TextEncoder().encode(str);
+    const buf = await crypto.subtle.digest("SHA-256", enc);
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
+
+  function renderList(){
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+    state.receipts.forEach((r, idx)=>{
+      const el = document.createElement("div");
+      el.className = "card click";
+      el.onclick = ()=>{ state.selected = idx; renderDetail(); };
+      el.innerHTML = `
+        <div class="row">
+          <div><strong>${escapeHtml(r.receipt_id)}</strong></div>
+          <span class="pill">${(r.confidence_score ?? 0).toFixed(2)}</span>
+        </div>
+        <div class="muted">${escapeHtml(r.timestamp_utc)}</div>
+        <div style="margin-top:8px">${escapeHtml(r.event_summary)}</div>
+        <div class="muted" style="margin-top:8px">${escapeHtml(r.event_type)}${r.location ? " • " + escapeHtml(r.location) : ""}</div>
+      `;
+      list.appendChild(el);
+    });
+  }
+
+  function renderDetail(){
+    const detail = document.getElementById("detail");
+    const pill = document.getElementById("detailConf");
+    if (state.selected === null){
+      detail.textContent = "Select a receipt on the left.";
+      pill.textContent = "—";
+      return;
+    }
+    const r = state.receipts[state.selected];
+    pill.textContent = (r.confidence_score ?? 0).toFixed(2);
+
+    detail.innerHTML = `
+      <div class="muted">timestamp_utc: ${escapeHtml(r.timestamp_utc)}</div>
+      <div class="muted">hash_prev: ${escapeHtml(r.hash_prev ?? "(none)")}</div>
+      <div class="muted">hash_current: ${escapeHtml(r.hash_current)}</div>
+      <div style="margin-top:10px;"><strong>Raw JSON</strong></div>
+      <div class="card" style="margin-top:8px;"><pre>${escapeHtml(JSON.stringify(r, null, 2))}</pre></div>
+    `;
+  }
+
+  async function verifyChain(){
+    let ok = true;
+    for (let i=0;i<state.receipts.length;i++){
+      const r = state.receipts[i];
+      const base = {...r};
+      delete base.hash_current;
+      const computed = await sha256Hex(canonical(base));
+      if (computed !== r.hash_current) ok = false;
+      if (i>0){
+        if (r.hash_prev !== state.receipts[i-1].hash_current) ok = false;
+      }
+    }
+    const status = document.getElementById("status");
+    status.className = "pill " + (ok ? "ok" : "bad");
+    status.textContent = ok ? "chain OK" : "chain FAIL";
+  }
+
+  async function loadExamples(){
+    // If you bundle examples, you can paste JSON right here.
+    // Minimal loader: only loads genesis (hardcoded) to keep the app self-contained.
+    const genesis = {
+      "receipt_id":"TR-1926-08-03-000001",
+      "timestamp_utc":"1926-08-03T00:00:00Z",
+      "event_type":"historical_artifact",
+      "event_summary":"Newspaper clipping titled 'The Truth No Defense' documenting a court position that truth is not a defense in contempt proceedings",
+      "location":"United States",
+      "sources":[{"type":"artifact","reference":"truth_is_no_defense.png","confidence":1,"hash_sha256":"2149adc3933e34978696af94287743056908bd0acb6d47e04f645c798de69a04"}],
+      "confidence_score":1,
+      "hash_prev":null,
+      "notes":"Genesis receipt anchored to a historical artifact. No endorsement, interpretation, or claim beyond existence and date.",
+      "hash_current":"3a8ebc163ab92c894ab1e5678aa9b63c47f4853a5687adf4838ec6fe9195ebad"
+    };
+    state.receipts = [genesis];
+    state.selected = 0;
+    renderList();
+    renderDetail();
+    await verifyChain();
+  }
+
+  async function addReceipt(){
+    const event_type = document.getElementById("eventType").value.trim() || "note";
+    const location = document.getElementById("location").value.trim() || null;
+    const event_summary = document.getElementById("summary").value.trim();
+    const confidence_score = parseFloat(document.getElementById("confidence").value);
+
+    let sources;
+    try{
+      sources = JSON.parse(document.getElementById("sources").value.trim());
+      if (!Array.isArray(sources) || sources.length < 1) throw new Error("sources must be an array with at least 1 item");
+    } catch(e){
+      alert("Invalid sources JSON: " + e.message);
+      return;
+    }
+
+    if (!event_summary) { alert("event_summary is required"); return; }
+    if (!(confidence_score >= 0 && confidence_score <= 1)) { alert("confidence_score must be 0..1"); return; }
+
+    const now = new Date().toISOString();
+    const seq = String(state.receipts.length + 1).padStart(6,"0");
+    const rid = `TR-${now.slice(0,10)}-${seq}`;
+    const hash_prev = state.receipts.length ? state.receipts[state.receipts.length-1].hash_current : null;
+
+    const receipt = {
+      receipt_id: rid,
+      timestamp_utc: now,
+      event_type,
+      event_summary,
+      location,
+      sources,
+      confidence_score,
+      hash_prev,
+      notes: "No interpretation applied"
+    };
+
+    receipt.hash_current = await sha256Hex(canonical(receipt));
+
+    state.receipts.push(receipt);
+    state.selected = state.receipts.length - 1;
+    renderList();
+    renderDetail();
+    await verifyChain();
+  }
+
+  document.getElementById("loadLocal").onclick = loadExamples;
+  document.getElementById("add").onclick = addReceipt;
+</script>
+</body>
+</html>
