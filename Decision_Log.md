@@ -33,3 +33,4 @@ update 0.2 pre launch
     "hash_sha256": "2149adc3933e34978696af94287743056908bd0acb6d47e04f645c798de69a04"
   }
 ]
+update 0.3 updated index.html + debugging.
