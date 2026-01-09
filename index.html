@@ -3,161 +3,139 @@
 <head>
 <meta charset="UTF-8" />
 <title>Temporal Receipts</title>
-
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self';">
 <style>
-  body {
-    font-family: monospace;
-    background: #0b0b0b;
-    color: #e6e6e6;
-    padding: 20px;
-  }
-  h1 { margin-bottom: 10px; }
+  body { font-family: monospace; background:#0b0b0b; color:#e6e6e6; padding:16px; }
+  h1,h2,h3 { margin: 8px 0; }
+  .row { margin: 6px 0; }
   input, button {
-    margin: 6px 0;
-    padding: 6px;
-    background: #111;
-    color: #e6e6e6;
-    border: 1px solid #333;
+    margin: 4px 6px 4px 0; padding: 6px;
+    background:#111; color:#e6e6e6; border:1px solid #333;
   }
-  table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-  }
-  th, td {
-    border: 1px solid #333;
-    padding: 6px;
-    font-size: 12px;
-  }
-  th { background: #111; }
-  tr:hover { background: #1a1a1a; cursor: pointer; }
-  pre {
-    background: #111;
-    padding: 10px;
-    border: 1px solid #333;
-    overflow-x: auto;
-  }
+  button { cursor: pointer; }
+  table { width:100%; border-collapse:collapse; margin-top:10px; }
+  th, td { border:1px solid #333; padding:6px; font-size:12px; }
+  th { background:#111; }
+  tr:hover { background:#1a1a1a; }
+  pre { background:#111; padding:10px; border:1px solid #333; overflow-x:auto; }
+  .split { display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+  .muted { color:#aaa; font-size:12px; }
 </style>
 </head>
-
 <body>
 
 <h1>Temporal Receipts</h1>
+<div class="muted">Add files → process queue → receipts logged → search & export</div>
 
-<input type="file" id="fileInput" />
-<br/>
-<input type="text" id="search" placeholder="search receipts…" />
-<button onclick="exportLedger()">export ledger</button>
-<button onclick="clearLedger()">clear</button>
+<div class="row">
+  <input type="file" id="fileInput" multiple />
+  <button id="processBtn">Process Queue</button>
+  <input type="text" id="search" placeholder="search receipts…" />
+  <button id="exportLedgerBtn">Export Ledger</button>
+  <button id="clearLedgerBtn">Clear Ledger</button>
+</div>
 
-<h3>Latest Receipt</h3>
-<pre id="latest">(none)</pre>
-
-<h3>Receipt Ledger</h3>
-<table>
-<thead>
-<tr>
-  <th>time</th>
-  <th>filename</th>
-  <th>sha256</th>
-</tr>
-</thead>
-<tbody id="ledger"></tbody>
-</table>
+<div class="split">
+  <div>
+    <h3>Status / Latest Receipt</h3>
+    <pre id="latest">(no files queued)</pre>
+  </div>
+  <div>
+    <h3>Ledger</h3>
+    <table>
+      <thead>
+        <tr><th>Time</th><th>Filename</th><th>SHA-256</th></tr>
+      </thead>
+      <tbody id="ledgerBody"></tbody>
+    </table>
+  </div>
+</div>
 
 <script>
-const LEDGER_KEY = "temporal_receipts_ledger";
+const LEDGER_KEY = "temporal_receipts_ledger_v2";
 let ledger = JSON.parse(localStorage.getItem(LEDGER_KEY) || "[]");
+let fileQueue = [];
 
-function saveLedger() {
-  localStorage.setItem(LEDGER_KEY, JSON.stringify(ledger));
-}
+function saveLedger(){ localStorage.setItem(LEDGER_KEY, JSON.stringify(ledger)); }
 
-async function sha256(file) {
+async function sha256(file){
   const buf = await file.arrayBuffer();
   const hashBuf = await crypto.subtle.digest("SHA-256", buf);
-  return [...new Uint8Array(hashBuf)]
-    .map(b => b.toString(16).padStart(2,"0"))
-    .join("");
+  return [...new Uint8Array(hashBuf)].map(b=>b.toString(16).padStart(2,"0")).join("");
 }
 
-function render(filter="") {
-  const tbody = document.getElementById("ledger");
-  tbody.innerHTML = "";
+function render(filter=""){
+  const body = document.getElementById("ledgerBody");
+  body.innerHTML = "";
   ledger
-    .filter(r =>
-      JSON.stringify(r).toLowerCase().includes(filter.toLowerCase())
-    )
+    .filter(r => JSON.stringify(r).toLowerCase().includes(filter.toLowerCase()))
     .forEach(r => {
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${r.timestamp}</td>
-        <td>${r.filename}</td>
-        <td>${r.sha256.slice(0,16)}…</td>
-      `;
-      tr.onclick = () =>
-        document.getElementById("latest").textContent =
-          JSON.stringify(r, null, 2);
-      tbody.appendChild(tr);
+      tr.innerHTML = `<td>${r.timestamp}</td><td>${r.filename}</td><td>${r.sha256.slice(0,16)}…</td>`;
+      tr.onclick = () => document.getElementById("latest").textContent = JSON.stringify(r, null, 2);
+      body.appendChild(tr);
     });
 }
 
-document.getElementById("fileInput").addEventListener("change", async e => {
-  const file = e.target.files[0];
-  if (!file) return;
-
-  const hash = await sha256(file);
-  const receipt = {
-    receipt_id: `TR-${Date.now()}-${hash.slice(0,8)}`,
-    filename: file.name,
-    mime: file.type || "unknown",
-    size_bytes: file.size,
-    sha256: hash,
-    timestamp: new Date().toISOString()
-  };
-
-  ledger.unshift(receipt);
-  saveLedger();
-  render();
+document.getElementById("fileInput").addEventListener("change", (e)=>{
+  fileQueue = Array.from(e.target.files);
   document.getElementById("latest").textContent =
-    JSON.stringify(receipt, null, 2);
-
-  // auto-download receipt
-  const blob = new Blob(
-    [JSON.stringify(receipt, null, 2)],
-    {type:"application/json"}
-  );
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = file.name + ".receipt.json";
-  a.click();
+    `Queued ${fileQueue.length} file(s). Click 'Process Queue'.`;
 });
 
-document.getElementById("search").addEventListener("input", e =>
-  render(e.target.value)
-);
+document.getElementById("processBtn").addEventListener("click", async ()=>{
+  if(fileQueue.length === 0){
+    alert("No files queued.");
+    return;
+  }
 
-function exportLedger() {
-  const blob = new Blob(
-    [JSON.stringify(ledger, null, 2)],
-    {type:"application/json"}
-  );
+  for(const file of fileQueue){
+    const hash = await sha256(file);
+    const receipt = {
+      receipt_id: `TR-${Date.now()}-${hash.slice(0,8)}`,
+      filename: file.name,
+      mime: file.type || "unknown",
+      size_bytes: file.size,
+      sha256: hash,
+      timestamp: new Date().toISOString()
+    };
+
+    ledger.unshift(receipt);
+    saveLedger();
+
+    const blob = new Blob([JSON.stringify(receipt, null, 2)], {type:"application/json"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = file.name + ".receipt.json";
+    a.click();
+  }
+
+  render(document.getElementById("search").value);
+  document.getElementById("latest").textContent =
+    `Processed ${fileQueue.length} file(s).`;
+  fileQueue = [];
+  document.getElementById("fileInput").value = "";
+});
+
+document.getElementById("search").addEventListener("input", e => render(e.target.value));
+
+document.getElementById("exportLedgerBtn").onclick = ()=>{
+  const blob = new Blob([JSON.stringify(ledger, null, 2)], {type:"application/json"});
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
   a.download = "temporal-receipts-ledger.json";
   a.click();
-}
+};
 
-function clearLedger() {
-  if (!confirm("clear all receipts?")) return;
+document.getElementById("clearLedgerBtn").onclick = ()=>{
+  if(!confirm("Clear all receipts?")) return;
   ledger = [];
   saveLedger();
   render();
-  document.getElementById("latest").textContent = "(none)";
-}
+  document.getElementById("latest").textContent = "(ledger cleared)";
+};
 
 render();
 </script>
-
 </body>
 </html>
